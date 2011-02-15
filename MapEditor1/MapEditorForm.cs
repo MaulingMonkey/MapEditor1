@@ -6,6 +6,8 @@ using System.Media;
 using System.Windows.Forms;
 using System.Diagnostics;
 using MapEditor1.Properties;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace MapEditor1 {
 	[Serializable] class Layer {
@@ -27,6 +29,7 @@ namespace MapEditor1 {
 		public int Width, Height;
 
 		public readonly List<Layer> Layers = new List<Layer>();
+		public readonly List<Bitmap> Assets = new List<Bitmap>();
 	}
 
 	[System.ComponentModel.DesignerCategory("")]
@@ -44,7 +47,7 @@ namespace MapEditor1 {
 		}
 
 		public void AttemptAddAsset( Bitmap image ) {
-			if ( image == null ) {
+			if ( image == null || Map==null ) {
 				SystemSounds.Beep.Play();
 				return;
 			}
@@ -66,17 +69,55 @@ namespace MapEditor1 {
 					);
 				if ( doublecheck != DialogResult.Yes ) return;
 			}
-			Assets.Add( image );
+			Map.Assets.Add( image );
 		}
 
-		protected override void OnKeyDown( KeyEventArgs e ) {
-			switch ( e.KeyData ) {
+		protected override void OnKeyDown( KeyEventArgs args ) {
+			switch ( args.KeyData ) {
 			case Keys.Control | Keys.N:
 				var dialog = new CreateMapDialog();
 				var newmap = dialog.Show(this);
 				if ( newmap!=null ) {
 					Map = newmap;
 					SelectedLayer = Map.Layers.First();
+				}
+				break;
+			case Keys.Control | Keys.S:
+				var savedialog = new SaveFileDialog()
+					{ DefaultExt = "map"
+					};
+				var saveresult = savedialog.ShowDialog(this);
+				if ( saveresult == DialogResult.OK ) try {
+					var ms = new MemoryStream();
+					var bf = new BinaryFormatter();
+					bf.Serialize( ms, Map );
+					ms.Position = 0;
+					var testdeserialize = (Map)bf.Deserialize(ms);
+					File.WriteAllBytes( savedialog.FileName, ms.ToArray() );
+				} catch ( Exception e ) {
+					MessageBox.Show
+						( this
+						, e.Message
+						, "Error serializing map"
+						, MessageBoxButtons.OK
+						);
+				}
+				break;
+			case Keys.Control | Keys.O:
+				var opendialog = new OpenFileDialog()
+					{ Filter = "Map Files|*.map"
+					};
+				if ( opendialog.ShowDialog(this) == DialogResult.OK ) try {
+					var bf = new BinaryFormatter();
+					var ms = new MemoryStream( File.ReadAllBytes(opendialog.FileName) );
+					Map = (Map)bf.Deserialize(ms);
+				} catch ( Exception e ) {
+					MessageBox.Show
+						( this
+						, e.Message
+						, "Error deserializing map"
+						, MessageBoxButtons.OK
+						);
 				}
 				break;
 			case Keys.Control | Keys.A:
@@ -98,7 +139,7 @@ namespace MapEditor1 {
 				} catch ( Exception ) { SystemSounds.Beep.Play(); }
 				break;
 			case Keys.Delete:
-				if ( SelectedAssetIndex<0 || SelectedAssetIndex>=Assets.Count ) break;
+				if ( Map==null || SelectedAssetIndex<0 || SelectedAssetIndex>=Map.Assets.Count ) break;
 
 				var result = MessageBox.Show
 					( this
@@ -109,27 +150,26 @@ namespace MapEditor1 {
 					, MessageBoxDefaultButton.Button1
 					);
 				if ( result == DialogResult.Yes ) {
-					Assets.RemoveAt( SelectedAssetIndex );
+					Map.Assets.RemoveAt( SelectedAssetIndex );
 				}
 				break;
 			default:
-				base.OnKeyDown(e);
+				base.OnKeyDown(args);
 				break;
 			}
 		}
 
 		static readonly Brush BitBrush = new SolidBrush(Color.FromArgb(128,Color.Red));
 
-		readonly List<Bitmap> Assets = new List<Bitmap>();
 		int SelectedAssetIndex = -1;
 
 		IEnumerable<Rectangle> GenerateAssetPositions() {
-			if ( Assets.Count==0 ) yield break;
+			if ( Map==null || Map.Assets.Count==0 ) yield break;
 
-			var assets_w = Assets.Max( a => a.Width*AssetsZoom );
+			var assets_w = Map.Assets.Max( a => a.Width*AssetsZoom );
 
-			for ( int y=2, i=0 ; y<ClientSize.Height && i<Assets.Count ; y+=Assets[i].Height*AssetsZoom+2, ++i ) {
-				var target = new Rectangle(ClientSize.Width-assets_w+(assets_w-Assets[i].Width*AssetsZoom)/2-2, y, Assets[i].Width*AssetsZoom, Assets[i].Height*AssetsZoom);
+			for ( int y=2, i=0 ; y<ClientSize.Height && i<Map.Assets.Count ; y+=Map.Assets[i].Height*AssetsZoom+2, ++i ) {
+				var target = new Rectangle(ClientSize.Width-assets_w+(assets_w-Map.Assets[i].Width*AssetsZoom)/2-2, y, Map.Assets[i].Width*AssetsZoom, Map.Assets[i].Height*AssetsZoom);
 				yield return target;
 			}
 		}
@@ -207,10 +247,11 @@ namespace MapEditor1 {
 				var layer = (BitmapLayer)SelectedLayer;
 				switch ( e.Button ) {
 				case MouseButtons.Left:
-					if ( 0<=SelectedAssetIndex && SelectedAssetIndex<Assets.Count )
+					if ( 0<=SelectedAssetIndex && SelectedAssetIndex<Map.Assets.Count )
 					using ( var fx = Graphics.FromImage(layer.Canvas) )
 					{
-						fx.DrawImage( Assets[SelectedAssetIndex], x*Map.SnapX, y*Map.SnapY, Assets[SelectedAssetIndex].Width, Assets[SelectedAssetIndex].Height );
+						var asset = Map.Assets[SelectedAssetIndex];
+						fx.DrawImage( asset, x*Map.SnapX, y*Map.SnapY, asset.Width, asset.Height );
 					}
 					break;
 				default: break;
@@ -256,15 +297,15 @@ namespace MapEditor1 {
 
 			var side = ClientSize.Width;
 
-			if ( Assets.Count>0 ) {
-				var assets_w = Assets.Max( a => a.Width*AssetsZoom );
+			if ( Map!=null && Map.Assets.Count>0 ) {
+				var assets_w = Map.Assets.Max( a => a.Width*AssetsZoom );
 				side -= assets_w+2;
 				var positions = GenerateAssetPositions().ToArray();
 
 				fx.FillRectangle( Brushes.Black, ClientSize.Width-assets_w-4, 0, assets_w+4, ClientSize.Height );
-				for ( int y=2, i=0 ; y<ClientSize.Height && i<Assets.Count ; y+=Assets[i].Height*AssetsZoom+2, ++i ) {
+				for ( int y=2, i=0 ; y<ClientSize.Height && i<Map.Assets.Count ; y+=Map.Assets[i].Height*AssetsZoom+2, ++i ) {
 					var target = positions[i];
-					fx.DrawImage( Assets[i], target );
+					fx.DrawImage( Map.Assets[i], target );
 					if ( i==SelectedAssetIndex ) {
 						fx.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Default;
 						fx.DrawRectangle( Pens.White, target );
