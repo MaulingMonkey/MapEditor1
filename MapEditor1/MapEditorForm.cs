@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Media;
-using System.Windows.Forms;
-using System.Diagnostics;
-using MapEditor1.Properties;
-using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Windows.Forms;
+using MapEditor1.Properties;
 
 namespace MapEditor1 {
 	[Serializable] class Layer {
@@ -79,12 +79,17 @@ namespace MapEditor1 {
 				var newmap = dialog.Show(this);
 				if ( newmap!=null ) {
 					Map = newmap;
-					SelectedLayer = Map.Layers.First();
+					SelectedLayer = Map.Layers.FirstOrDefault();
 				}
 				break;
 			case Keys.Control | Keys.S:
 				var savedialog = new SaveFileDialog()
-					{ DefaultExt = "map"
+					{ AddExtension = true
+					, DefaultExt = "mp1"
+					, Filter = "Map Files|*.mp1"
+					, InitialDirectory = @"I:\home\projects\"
+					, OverwritePrompt = true
+					, Title = "Save map file..."
 					};
 				var saveresult = savedialog.ShowDialog(this);
 				if ( saveresult == DialogResult.OK ) try {
@@ -105,12 +110,16 @@ namespace MapEditor1 {
 				break;
 			case Keys.Control | Keys.O:
 				var opendialog = new OpenFileDialog()
-					{ Filter = "Map Files|*.map"
+					{ DefaultExt="mp1"
+					, Filter = "Map Files|*.mp1"
+					, InitialDirectory = @"I:\home\projects\"
+					, Title = "Open map file..."
 					};
 				if ( opendialog.ShowDialog(this) == DialogResult.OK ) try {
 					var bf = new BinaryFormatter();
 					var ms = new MemoryStream( File.ReadAllBytes(opendialog.FileName) );
 					Map = (Map)bf.Deserialize(ms);
+					SelectedLayer = Map.Layers.FirstOrDefault();
 				} catch ( Exception e ) {
 					MessageBox.Show
 						( this
@@ -210,11 +219,23 @@ namespace MapEditor1 {
 		}
 
 		protected override void  OnMouseDown(MouseEventArgs e) {
-			var positions = GenerateAssetPositions().ToArray();
+			var asset_positions = GenerateAssetPositions().ToArray();
 
-			for ( int i=0 ; i<positions.Length ; ++i ) {
-				if ( positions[i].Contains(e.Location) ) {
+			int posx = ClientSize.Width;
+
+			for ( int i=0 ; i<asset_positions.Length ; ++i ) {
+				if ( asset_positions[i].Contains(e.Location) ) {
 					SelectedAssetIndex = i;
+					return;
+				}
+				posx = Math.Min(posx,asset_positions[i].Left);
+			}
+
+			var layer_positions = GenerateLayerPositions(posx-2).ToArray();
+
+			for ( int i=0 ; i<layer_positions.Length ; ++i ) {
+				if ( layer_positions[i].LinePosition.Contains(e.Location) ) {
+					SelectedLayer = Map.Layers[i];
 					return;
 				}
 			}
@@ -261,6 +282,51 @@ namespace MapEditor1 {
 			}
 
 			base.OnMouseDown(e);
+		}
+
+		protected override void OnMouseMove( MouseEventArgs e ) {
+			SelectedXY = null;
+			if ( Map==null ) return;
+
+			var x = e.Location.X/Map.SnapX/MapZoom;
+			var y = e.Location.Y/Map.SnapY/MapZoom;
+
+			if ( 0<=x && x<Map.Width )
+			if ( 0<=y && y<Map.Height )
+			{
+				SelectedXY = new Point(x,y);
+			}
+			if ( SelectedXY==null ) return;
+
+			var xy = SelectedXY.Value;
+
+			if ( SelectedLayer == null ) return;
+
+			if ( SelectedLayer is BitLayer ) {
+				var layer = (BitLayer)SelectedLayer;
+				switch ( e.Button ) {
+				case MouseButtons.Left:  layer.Data[xy.X,xy.Y] = true ; break;
+				case MouseButtons.Right: layer.Data[xy.X,xy.Y] = false; break;
+				default: break;
+				}
+			} else if (SelectedLayer is BitmapLayer ) {
+				var layer = (BitmapLayer)SelectedLayer;
+				switch ( e.Button ) {
+				case MouseButtons.Left:
+					if ( 0<=SelectedAssetIndex && SelectedAssetIndex<Map.Assets.Count )
+					using ( var fx = Graphics.FromImage(layer.Canvas) )
+					{
+						var asset = Map.Assets[SelectedAssetIndex];
+						fx.DrawImage( asset, x*Map.SnapX, y*Map.SnapY, asset.Width, asset.Height );
+					}
+					break;
+				default: break;
+				}
+			} else {
+				Debug.Fail("!!@!#!@#!@$");
+			}
+
+			base.OnMouseMove(e);
 		}
 
 		Point? SelectedXY = null;
