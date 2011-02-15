@@ -53,10 +53,6 @@ namespace MapEditor1 {
 			}
 
 			if ( Map!=null && (image.Width/Map.SnapX*Map.SnapX != image.Width || image.Height/Map.SnapY*Map.SnapY != image.Height) ) {
-#if DEBUG
-				SystemSounds.Beep.Play();
-				return;
-#endif
 				var doublecheck = MessageBox.Show
 					( this
 					, "Image isn't a multiple of snap size\n"
@@ -72,7 +68,36 @@ namespace MapEditor1 {
 			Map.Assets.Add( image );
 		}
 
+		void DoSave() {
+			var savedialog = new SaveFileDialog()
+				{ AddExtension = true
+				, DefaultExt = "mp1"
+				, Filter = "Map Files|*.mp1"
+				, InitialDirectory = @"I:\home\projects\"
+				, Title = "Save map file..."
+				};
+			var saveresult = savedialog.ShowDialog(this);
+			if ( saveresult == DialogResult.OK ) try {
+				var ms = new MemoryStream();
+				var bf = new BinaryFormatter();
+				bf.Serialize( ms, Map );
+				ms.Position = 0;
+				var testdeserialize = (Map)bf.Deserialize(ms);
+				File.WriteAllBytes( savedialog.FileName, ms.ToArray() );
+			} catch ( Exception e ) {
+				MessageBox.Show
+					( this
+					, e.Message
+					, "Error serializing map"
+					, MessageBoxButtons.OK
+					);
+			}
+		}
+
 		protected override void OnKeyDown( KeyEventArgs args ) {
+			args.SuppressKeyPress = args.Handled = true;
+			base.OnKeyDown(args);
+
 			switch ( args.KeyData ) {
 			case Keys.Control | Keys.N:
 				var dialog = new CreateMapDialog();
@@ -83,30 +108,8 @@ namespace MapEditor1 {
 				}
 				break;
 			case Keys.Control | Keys.S:
-				var savedialog = new SaveFileDialog()
-					{ AddExtension = true
-					, DefaultExt = "mp1"
-					, Filter = "Map Files|*.mp1"
-					, InitialDirectory = @"I:\home\projects\"
-					, OverwritePrompt = true
-					, Title = "Save map file..."
-					};
-				var saveresult = savedialog.ShowDialog(this);
-				if ( saveresult == DialogResult.OK ) try {
-					var ms = new MemoryStream();
-					var bf = new BinaryFormatter();
-					bf.Serialize( ms, Map );
-					ms.Position = 0;
-					var testdeserialize = (Map)bf.Deserialize(ms);
-					File.WriteAllBytes( savedialog.FileName, ms.ToArray() );
-				} catch ( Exception e ) {
-					MessageBox.Show
-						( this
-						, e.Message
-						, "Error serializing map"
-						, MessageBoxButtons.OK
-						);
-				}
+				args.SuppressKeyPress = args.Handled = false;
+				DoSave();
 				break;
 			case Keys.Control | Keys.O:
 				var opendialog = new OpenFileDialog()
@@ -163,7 +166,7 @@ namespace MapEditor1 {
 				}
 				break;
 			default:
-				base.OnKeyDown(args);
+				args.SuppressKeyPress = args.Handled = false;
 				break;
 			}
 		}
@@ -219,6 +222,8 @@ namespace MapEditor1 {
 		}
 
 		protected override void  OnMouseDown(MouseEventArgs e) {
+			base.OnMouseDown(e);
+
 			var asset_positions = GenerateAssetPositions().ToArray();
 
 			int posx = ClientSize.Width;
@@ -280,11 +285,11 @@ namespace MapEditor1 {
 			} else {
 				Debug.Fail("!!@!#!@#!@$");
 			}
-
-			base.OnMouseDown(e);
 		}
 
 		protected override void OnMouseMove( MouseEventArgs e ) {
+			base.OnMouseMove(e);
+
 			SelectedXY = null;
 			if ( Map==null ) return;
 
@@ -325,8 +330,6 @@ namespace MapEditor1 {
 			} else {
 				Debug.Fail("!!@!#!@#!@$");
 			}
-
-			base.OnMouseMove(e);
 		}
 
 		Point? SelectedXY = null;
@@ -334,6 +337,8 @@ namespace MapEditor1 {
 		Point MapFocus = new Point(0,0);
 
 		protected override void OnPaint( PaintEventArgs e ) {
+			base.OnPaint(e);
+
 			var fx = e.Graphics;
 
 			fx.Clear( BackColor );
@@ -407,7 +412,6 @@ namespace MapEditor1 {
 			}
 
 			Invalidate();
-			base.OnPaint(e);
 		}
 
 		static readonly Bitmap
