@@ -44,6 +44,12 @@ namespace MapEditor1 {
 			ClientSize = new Size(800,600);
 			DoubleBuffered = true;
 			Text = "Map Editor 1";
+
+			Application.Idle += delegate { Invalidate(); };
+		}
+
+		void Refresh_Tick( object sender, EventArgs e ) {
+			Invalidate();
 		}
 
 		public void AttemptAddAsset( Bitmap image ) {
@@ -410,8 +416,6 @@ namespace MapEditor1 {
 				var xy = SelectedXY.Value;
 				fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom, xy.Y*Map.SnapY*MapZoom, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
 			}
-
-			Invalidate();
 		}
 
 		static readonly Bitmap
