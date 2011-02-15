@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapEditor1", "MapEditor1\MapEditor1.csproj", "{EA679833-46D5-4217-8319-386F3BAC3637}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D951FDBC-C16D-4BF3-A7CB-80B5086AA92B}"
+	ProjectSection(SolutionItems) = preProject
+		Schedule+Design.txt = Schedule+Design.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

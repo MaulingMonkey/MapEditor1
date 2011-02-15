@@ -1,0 +1,14 @@
+SDI MapEditor1
+
+:10 determine schedule -- DONE on time
+: 5 setup git+github -- DONE nearly on time (originally to wrong project -- whoops!)
+:15 icon asset design (16x16 boolean layer, image layer, new layer, delete layer, layer visibility, rename  slack: layer reorder)
+:30 Initial Scaffolding (Screen/Overlay, New Map Dialog, Basic Grid & Rendering)
+:30 Tile/Asset Loading (Ctrl+A image, Ctrl+V clipboard, selection + deletion + confirmation)
+:30 Layer Manipulation (selection, creation, etc)
+:30 Serialization (Ctrl+Shift+S Save As, Ctrl+S Save, Ctrl+O Open)
+:30 Slack (screenshots? website? postmortem?)
+
+LUNCH @ ~11
+
+Bitmap + Grid Snap
