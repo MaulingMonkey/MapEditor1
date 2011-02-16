@@ -1,5 +1,7 @@
 SDI MapEditor1
 
+Jaunt 1 Schedule:
+
 :10 determine schedule -- DONE on time
 : 5 setup git+github -- DONE nearly on time (originally to wrong project -- whoops!)
 :15 icon asset design (16x16 boolean layer, image layer, new layer, delete layer, layer visibility, rename  slack: layer reorder)
@@ -12,3 +14,13 @@ SDI MapEditor1
 LUNCH @ ~11
 
 Bitmap + Grid Snap
+
+Jaunt 2 Schedule:
+
+:30 Refactoring into classes & layout -- RefreshLayout(Rectangle) -> Rectangle, Layers, Assets, Map
+:30 Add map panning
+:30 Make layer buttons interactive
+:30 Mouse wheel asset switching, properly sized blinking preview
+:30 Save/Open polish (seperate 'save as', tracking last used directory)
+:30 Slack Time (more layer icons, reordering?)
+:1 LUNCH!
