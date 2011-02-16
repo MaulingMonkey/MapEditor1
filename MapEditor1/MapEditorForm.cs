@@ -35,7 +35,14 @@ namespace MapEditor1 {
 	[System.ComponentModel.DesignerCategory("")]
 	class MapEditorForm : Form {
 		Map   Map;
-		int MapZoom = 2;
+		int   MapZoom = 2;
+		Point MapOffset = new Point(0,0);
+
+		Point MapOffsetTL { get {
+			var o = MapOffset;
+			o.Offset( MapArea.Width/2, MapArea.Height/2 );
+			return o;
+		}}
 
 		UI.LayersSidebar LayersSidebar = new UI.LayersSidebar();
 		UI.AssetsSidebar AssetsSidebar = new UI.AssetsSidebar();
@@ -134,6 +141,10 @@ namespace MapEditor1 {
 					var ms = new MemoryStream( File.ReadAllBytes(opendialog.FileName) );
 					Map = (Map)bf.Deserialize(ms);
 					LayersSidebar.SelectedLayer = Map.Layers.FirstOrDefault();
+					MapOffset = new Point
+						( -(Map.Width *Map.SnapX*MapZoom)/2
+						, -(Map.Height*Map.SnapY*MapZoom)/2
+						);
 				} catch ( Exception e ) {
 					MessageBox.Show
 						( this
@@ -185,17 +196,21 @@ namespace MapEditor1 {
 
 		static readonly Brush BitBrush = new SolidBrush(Color.FromArgb(128,Color.Red));
 
+		Point? MMB_Scroll;
+
 		protected override void  OnMouseDown(MouseEventArgs e) {
 			base.OnMouseDown(e);
 
 			if ( AssetsSidebar.OnMouseDown(e) ) return;
 			if ( LayersSidebar.OnMouseDown(e) ) return;
 
+			if ( e.Button == MouseButtons.Middle ) MMB_Scroll = e.Location;
+
 			SelectedXY = null;
 			if ( Map==null ) return;
 
-			var x = e.Location.X/Map.SnapX/MapZoom;
-			var y = e.Location.Y/Map.SnapY/MapZoom;
+			var x = (e.Location.X-MapOffsetTL.X)/Map.SnapX/MapZoom;
+			var y = (e.Location.Y-MapOffsetTL.Y)/Map.SnapY/MapZoom;
 
 			if ( 0<=x && x<Map.Width )
 			if ( 0<=y && y<Map.Height )
@@ -236,11 +251,21 @@ namespace MapEditor1 {
 		protected override void OnMouseMove( MouseEventArgs e ) {
 			base.OnMouseMove(e);
 
+			if ( (e.Button & MouseButtons.Middle) != MouseButtons.None ) {
+				var mmb = MMB_Scroll ?? e.Location;
+				var dx = e.Location.X - mmb.X;
+				var dy = e.Location.Y - mmb.Y;
+				MMB_Scroll = e.Location;
+
+				MapOffset.X += dx;
+				MapOffset.Y += dy;
+			}
+
 			SelectedXY = null;
 			if ( Map==null ) return;
 
-			var x = e.Location.X/Map.SnapX/MapZoom;
-			var y = e.Location.Y/Map.SnapY/MapZoom;
+			var x = (e.Location.X-MapOffsetTL.X)/Map.SnapX/MapZoom;
+			var y = (e.Location.Y-MapOffsetTL.Y)/Map.SnapY/MapZoom;
 
 			if ( 0<=x && x<Map.Width )
 			if ( 0<=y && y<Map.Height )
@@ -278,9 +303,13 @@ namespace MapEditor1 {
 			}
 		}
 
-		Point? SelectedXY = null;
+		protected override void OnMouseUp( MouseEventArgs e ) {
+			if ( e.Button == MouseButtons.Middle ) MMB_Scroll = null;
 
-		Point MapFocus = new Point(0,0);
+			base.OnMouseUp(e);
+		}
+
+		Point? SelectedXY = null;
 
 		protected override void OnPaint( PaintEventArgs e ) {
 			base.OnPaint(e);
@@ -299,12 +328,14 @@ namespace MapEditor1 {
 					var bitlayer = layer as BitLayer;
 
 					if ( bitmaplayer != null ) {
-						fx.DrawImage( bitmaplayer.Canvas, 0, 0, bitmaplayer.Canvas.Width*MapZoom, bitmaplayer.Canvas.Height*MapZoom );
+						fx.DrawImage( bitmaplayer.Canvas, MapOffsetTL.X, MapOffsetTL.Y, bitmaplayer.Canvas.Width*MapZoom, bitmaplayer.Canvas.Height*MapZoom );
 					} else if ( bitlayer != null ) {
+						var off = MapOffsetTL;
+
 						for ( int y=0 ; y<Map.Height ; ++y )
 						for ( int x=0 ; x<Map.Width  ; ++x )
 						{
-							if ( bitlayer.Data[x,y] ) fx.FillRectangle( BitBrush, x*Map.SnapX*MapZoom, y*Map.SnapY*MapZoom, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
+							if ( bitlayer.Data[x,y] ) fx.FillRectangle( BitBrush, x*Map.SnapX*MapZoom+off.X, y*Map.SnapY*MapZoom+off.Y, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
 						}
 					} else {
 						throw new InvalidOperationException( "Invalid layer type: "+layer.GetType() );
@@ -317,6 +348,7 @@ namespace MapEditor1 {
 			var target = ClientRectangle;
 			target = AssetsSidebar.RefreshLayout( target );
 			target = LayersSidebar.RefreshLayout( target );
+			MapArea = target; // everything left over
 			fx.FillRectangle( Brushes.Black, AssetsSidebar.BackgroundArea );
 			fx.FillRectangle( Brushes.Black, LayersSidebar.BackgroundArea );
 			AssetsSidebar.RenderTo(fx);
@@ -324,9 +356,11 @@ namespace MapEditor1 {
 
 			if ( DateTime.Now.Millisecond<500 && SelectedXY!=null ) {
 				var xy = SelectedXY.Value;
-				fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom, xy.Y*Map.SnapY*MapZoom, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
+				fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom + MapOffsetTL.X, xy.Y*Map.SnapY*MapZoom + MapOffsetTL.Y, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
 			}
 		}
+
+		Rectangle MapArea;
 
 		static readonly Bitmap
 			BitmapLayerIcon  = Resources.ImageLayerIcon,
