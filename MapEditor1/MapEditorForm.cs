@@ -88,22 +88,37 @@ namespace MapEditor1 {
 			Map.Assets.Add( image );
 		}
 
-		void DoSave() {
-			var savedialog = new SaveFileDialog()
-				{ AddExtension = true
-				, DefaultExt = "mp1"
-				, Filter = "Map Files|*.mp1"
-				, InitialDirectory = @"I:\home\projects\"
-				, Title = "Save map file..."
-				};
-			var saveresult = savedialog.ShowDialog(this);
-			if ( saveresult == DialogResult.OK ) try {
+		string _dfn;
+		string DocumentFileName { get {
+			return _dfn;
+		} set {
+			_dfn = value;
+			Text = "Map Editor 1 -- "+_dfn;
+		}}
+
+		void DoSave( string filename ) {
+			if ( filename == null ) {
+				var savedialog = new SaveFileDialog()
+					{ AddExtension = true
+					, DefaultExt = "mp1"
+					, Filter = "Map Files|*.mp1"
+					, InitialDirectory = Program.State.LastUsedDirectory ?? @"I:\home\projects\"
+					, Title = "Save map file..."
+					};
+				var saveresult = savedialog.ShowDialog(this);
+				if ( saveresult != DialogResult.OK ) return;
+				filename = savedialog.FileName;
+			}
+
+			try {
 				var ms = new MemoryStream();
 				var bf = new BinaryFormatter();
 				bf.Serialize( ms, Map );
 				ms.Position = 0;
 				var testdeserialize = (Map)bf.Deserialize(ms);
-				File.WriteAllBytes( savedialog.FileName, ms.ToArray() );
+				File.WriteAllBytes( filename, ms.ToArray() );
+				DocumentFileName = filename;
+				Program.State.LastUsedDirectory = Path.GetDirectoryName(filename);
 			} catch ( Exception e ) {
 				MessageBox.Show
 					( this
@@ -127,21 +142,24 @@ namespace MapEditor1 {
 					LayersSidebar.SelectedLayer = Map.Layers.FirstOrDefault();
 				}
 				break;
+			case Keys.Control | Keys.Shift | Keys.S:
+				DoSave(null);
+				break;
 			case Keys.Control | Keys.S:
-				args.SuppressKeyPress = args.Handled = false;
-				DoSave();
+				DoSave(DocumentFileName);
 				break;
 			case Keys.Control | Keys.O:
 				var opendialog = new OpenFileDialog()
 					{ DefaultExt="mp1"
 					, Filter = "Map Files|*.mp1"
-					, InitialDirectory = @"I:\home\projects\"
+					, InitialDirectory = Program.State.LastUsedDirectory ?? @"I:\home\projects\"
 					, Title = "Open map file..."
 					};
 				if ( opendialog.ShowDialog(this) == DialogResult.OK ) try {
 					var bf = new BinaryFormatter();
 					var ms = new MemoryStream( File.ReadAllBytes(opendialog.FileName) );
 					Map = (Map)bf.Deserialize(ms);
+					DocumentFileName = opendialog.FileName;
 					LayersSidebar.SelectedLayer = Map.Layers.FirstOrDefault();
 					MapOffset = new Point
 						( -(Map.Width *Map.SnapX*MapZoom)/2
@@ -309,6 +327,25 @@ namespace MapEditor1 {
 			if ( e.Button == MouseButtons.Middle ) MMB_Scroll = null;
 
 			base.OnMouseUp(e);
+		}
+
+		protected override void OnMouseWheel( MouseEventArgs e ) {
+			if ( SelectedAsset == null ) {
+				if ( Map != null ) AssetsSidebar.SelectedAsset = Map.Assets.First();
+			} else {
+				var index = Map.Assets.IndexOf(SelectedAsset);
+				if ( index==-1 ) {
+					AssetsSidebar.SelectedAsset = Map.Assets.First();
+				} else {
+					index -= e.Delta/100;
+					if ( index<0 ) index=0;
+					if ( index>=Map.Assets.Count ) index=Map.Assets.Count-1;
+
+					AssetsSidebar.SelectedAsset = Map.Assets[index];
+				}
+			}
+
+			base.OnMouseWheel(e);
 		}
 
 		Point? SelectedXY = null;
