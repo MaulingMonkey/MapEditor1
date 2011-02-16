@@ -50,13 +50,15 @@ namespace MapEditor1 {
 		public Bitmap SelectedAsset { get { return AssetsSidebar.SelectedAsset; }}
 
 		public MapEditorForm() {
-			ClientSize = new Size(800,600);
+			BackColor      = Color.Black;
+			ClientSize     = new Size(800,600);
 			DoubleBuffered = true;
-			Text = "Map Editor 1";
+			Text           = "Map Editor 1";
 
 			Application.Idle += delegate { Invalidate(); };
 			LayersSidebar.GetLayers = () => Map == null ? null : Map.Layers;
 			AssetsSidebar.GetAssets = () => Map == null ? null : Map.Assets;
+			LayersSidebar.Form = this;
 			LayersSidebar.Font = Font;
 		}
 
@@ -356,7 +358,13 @@ namespace MapEditor1 {
 
 			if ( DateTime.Now.Millisecond<500 && SelectedXY!=null ) {
 				var xy = SelectedXY.Value;
-				fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom + MapOffsetTL.X, xy.Y*Map.SnapY*MapZoom + MapOffsetTL.Y, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
+				var asset = SelectedAsset;
+
+				if ( asset != null && SelectedLayer is BitmapLayer ) {
+					fx.DrawImage( asset, xy.X*Map.SnapX*MapZoom + MapOffsetTL.X, xy.Y*Map.SnapY*MapZoom + MapOffsetTL.Y, asset.Width*MapZoom, asset.Height*MapZoom );
+				} else {
+					fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom + MapOffsetTL.X, xy.Y*Map.SnapY*MapZoom + MapOffsetTL.Y, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
+				}
 			}
 		}
 

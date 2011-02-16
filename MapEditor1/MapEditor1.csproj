@@ -58,10 +58,19 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <EmbeddedResource Include="RenameLayerDialog.resx">
+      <DependentUpon>RenameLayerDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="RenameLayerDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="RenameLayerDialog.Designer.cs">
+      <DependentUpon>RenameLayerDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\AssetSidebar.cs" />
     <Compile Include="UI\LayersSidebar.cs" />
@@ -86,6 +95,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\LayerRename.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\LayerVisibilityOff.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

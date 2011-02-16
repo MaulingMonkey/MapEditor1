@@ -95,6 +95,13 @@ namespace MapEditor1.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap LayerVisibilityOff {
+            get {
+                object obj = ResourceManager.GetObject("LayerVisibilityOff", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         internal static System.Drawing.Bitmap NewBitLayerIcon {
             get {
                 object obj = ResourceManager.GetObject("NewBitLayerIcon", resourceCulture);

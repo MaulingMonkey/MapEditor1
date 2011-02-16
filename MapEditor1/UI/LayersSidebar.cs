@@ -11,8 +11,9 @@ namespace MapEditor1.UI {
 		public Func<IEnumerable<Layer>> GetLayers;
 		public Layer                    SelectedLayer;
 
+		public Form Form;
 		public Font Font;
-		public int Margin = 5;
+		public int  Margin = 5;
 		// No Zoom
 
 		struct LayoutEntry {
@@ -87,22 +88,33 @@ namespace MapEditor1.UI {
 				if ( layer==SelectedLayer ) using ( var brush = new SolidBrush(bg) ) fx.FillRectangle( brush, pos.LinePosition );
 				fx.DrawImage( typeicon, pos.TypeIconPosition );
 				TextRenderer.DrawText( fx, layer.Name, Font, pos.TextPosition, fg, bg );
-				fx.DrawImage( VisibleLayerIcon, pos.VisibilityIconPosition );
-				fx.DrawImage( TextLayerIcon   , pos.RenameIconPosition     );
+
+				fx.DrawImage( layer.Visible ? VisibleLayerIcon : InvisibleLayerIcon , pos.VisibilityIconPosition );
+				fx.DrawImage( TextLayerIcon                                         , pos.RenameIconPosition     );
 			}
 		}
 
 		static readonly Bitmap
-			BitmapLayerIcon  = Resources.ImageLayerIcon,
-			BitLayerIcon     = Resources.BitLayerIcon,
-			VisibleLayerIcon = Resources.LayerVisibility,
-			TextLayerIcon    = Resources.LayerRename;
+			BitmapLayerIcon    = Resources.ImageLayerIcon,
+			BitLayerIcon       = Resources.BitLayerIcon,
+			VisibleLayerIcon   = Resources.LayerVisibility,
+			InvisibleLayerIcon = Resources.LayerVisibilityOff,
+			TextLayerIcon      = Resources.LayerRename;
 
 		public bool OnMouseDown( MouseEventArgs args ) {
 			if (!BackgroundArea.Contains(args.Location)) return false;
 
 			foreach ( var entry in Layout ) if ( entry.LinePosition.Contains(args.Location) ) {
-				SelectedLayer = entry.Layer;
+
+				if ( entry.VisibilityIconPosition.Contains(args.Location) ) {
+					entry.Layer.Visible ^= true;
+				} else if ( entry.RenameIconPosition.Contains(args.Location) ) {
+					var rld = new RenameLayerDialog(entry.Layer);
+					rld.ShowDialog(Form);
+				} else {
+					SelectedLayer = entry.Layer;
+				}
+
 				return true;
 			}
 
