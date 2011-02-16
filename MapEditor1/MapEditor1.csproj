@@ -63,6 +63,8 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="UI\AssetSidebar.cs" />
+    <Compile Include="UI\LayersSidebar.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\BitLayerIcon.png" />

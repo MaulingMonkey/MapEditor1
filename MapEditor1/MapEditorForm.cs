@@ -35,10 +35,12 @@ namespace MapEditor1 {
 	[System.ComponentModel.DesignerCategory("")]
 	class MapEditorForm : Form {
 		Map   Map;
-		Layer SelectedLayer;
-
 		int MapZoom = 2;
-		int AssetsZoom = 2;
+
+		UI.LayersSidebar LayersSidebar = new UI.LayersSidebar();
+		UI.AssetsSidebar AssetsSidebar = new UI.AssetsSidebar();
+		public Layer  SelectedLayer { get { return LayersSidebar.SelectedLayer; }}
+		public Bitmap SelectedAsset { get { return AssetsSidebar.SelectedAsset; }}
 
 		public MapEditorForm() {
 			ClientSize = new Size(800,600);
@@ -46,6 +48,9 @@ namespace MapEditor1 {
 			Text = "Map Editor 1";
 
 			Application.Idle += delegate { Invalidate(); };
+			LayersSidebar.GetLayers = () => Map == null ? null : Map.Layers;
+			AssetsSidebar.GetAssets = () => Map == null ? null : Map.Assets;
+			LayersSidebar.Font = Font;
 		}
 
 		void Refresh_Tick( object sender, EventArgs e ) {
@@ -110,7 +115,7 @@ namespace MapEditor1 {
 				var newmap = dialog.Show(this);
 				if ( newmap!=null ) {
 					Map = newmap;
-					SelectedLayer = Map.Layers.FirstOrDefault();
+					LayersSidebar.SelectedLayer = Map.Layers.FirstOrDefault();
 				}
 				break;
 			case Keys.Control | Keys.S:
@@ -128,7 +133,7 @@ namespace MapEditor1 {
 					var bf = new BinaryFormatter();
 					var ms = new MemoryStream( File.ReadAllBytes(opendialog.FileName) );
 					Map = (Map)bf.Deserialize(ms);
-					SelectedLayer = Map.Layers.FirstOrDefault();
+					LayersSidebar.SelectedLayer = Map.Layers.FirstOrDefault();
 				} catch ( Exception e ) {
 					MessageBox.Show
 						( this
@@ -157,7 +162,8 @@ namespace MapEditor1 {
 				} catch ( Exception ) { SystemSounds.Beep.Play(); }
 				break;
 			case Keys.Delete:
-				if ( Map==null || SelectedAssetIndex<0 || SelectedAssetIndex>=Map.Assets.Count ) break;
+				if ( Map==null ) break;
+				if ( AssetsSidebar.SelectedAsset == null ) break;
 
 				var result = MessageBox.Show
 					( this
@@ -168,7 +174,7 @@ namespace MapEditor1 {
 					, MessageBoxDefaultButton.Button1
 					);
 				if ( result == DialogResult.Yes ) {
-					Map.Assets.RemoveAt( SelectedAssetIndex );
+					Map.Assets.Remove( SelectedAsset );
 				}
 				break;
 			default:
@@ -179,77 +185,11 @@ namespace MapEditor1 {
 
 		static readonly Brush BitBrush = new SolidBrush(Color.FromArgb(128,Color.Red));
 
-		int SelectedAssetIndex = -1;
-
-		IEnumerable<Rectangle> GenerateAssetPositions() {
-			if ( Map==null || Map.Assets.Count==0 ) yield break;
-
-			var assets_w = Map.Assets.Max( a => a.Width*AssetsZoom );
-
-			for ( int y=2, i=0 ; y<ClientSize.Height && i<Map.Assets.Count ; y+=Map.Assets[i].Height*AssetsZoom+2, ++i ) {
-				var target = new Rectangle(ClientSize.Width-assets_w+(assets_w-Map.Assets[i].Width*AssetsZoom)/2-2, y, Map.Assets[i].Width*AssetsZoom, Map.Assets[i].Height*AssetsZoom);
-				yield return target;
-			}
-		}
-
-		struct LayerLayoutEntry {
-			public Rectangle LinePosition;
-
-			public Rectangle TypeIconPosition;
-			public Rectangle TextPosition;
-			public Rectangle VisibilityIconPosition;
-			public Rectangle RenameIconPosition;
-		}
-
-		IEnumerable<LayerLayoutEntry> GenerateLayerPositions( int right ) {
-			if ( Map==null ) yield break;
-
-			var textw = Map.Layers.Max( l => TextRenderer.MeasureText( l.Name, Font ).Width );
-
-			int left = right-2-16-2-textw-2-16-2-16-2;
-			int y = 2;
-			foreach ( var layer in Map.Layers ) {
-				var x = left;
-
-				var entry = new LayerLayoutEntry();
-
-				x += 2;
-				entry.TypeIconPosition       = new Rectangle(x,y,   16,16); x += 16+2;
-				entry.TextPosition           = new Rectangle(x,y,textw,16); x += textw+2;
-				entry.VisibilityIconPosition = new Rectangle(x,y,   16,16); x += 16+2;
-				entry.RenameIconPosition     = new Rectangle(x,y,   16,16); x += 16+2;
-				Debug.Assert( x==right );
-
-				entry.LinePosition = new Rectangle(left+1,y-1,right-left-2,18);
-
-				yield return entry;
-				y += 16+2;
-			}
-		}
-
 		protected override void  OnMouseDown(MouseEventArgs e) {
 			base.OnMouseDown(e);
 
-			var asset_positions = GenerateAssetPositions().ToArray();
-
-			int posx = ClientSize.Width;
-
-			for ( int i=0 ; i<asset_positions.Length ; ++i ) {
-				if ( asset_positions[i].Contains(e.Location) ) {
-					SelectedAssetIndex = i;
-					return;
-				}
-				posx = Math.Min(posx,asset_positions[i].Left);
-			}
-
-			var layer_positions = GenerateLayerPositions(posx-2).ToArray();
-
-			for ( int i=0 ; i<layer_positions.Length ; ++i ) {
-				if ( layer_positions[i].LinePosition.Contains(e.Location) ) {
-					SelectedLayer = Map.Layers[i];
-					return;
-				}
-			}
+			if ( AssetsSidebar.OnMouseDown(e) ) return;
+			if ( LayersSidebar.OnMouseDown(e) ) return;
 
 			SelectedXY = null;
 			if ( Map==null ) return;
@@ -279,10 +219,10 @@ namespace MapEditor1 {
 				var layer = (BitmapLayer)SelectedLayer;
 				switch ( e.Button ) {
 				case MouseButtons.Left:
-					if ( 0<=SelectedAssetIndex && SelectedAssetIndex<Map.Assets.Count )
+					if ( SelectedAsset!=null )
 					using ( var fx = Graphics.FromImage(layer.Canvas) )
 					{
-						var asset = Map.Assets[SelectedAssetIndex];
+						var asset = SelectedAsset;
 						fx.DrawImage( asset, x*Map.SnapX, y*Map.SnapY, asset.Width, asset.Height );
 					}
 					break;
@@ -324,10 +264,10 @@ namespace MapEditor1 {
 				var layer = (BitmapLayer)SelectedLayer;
 				switch ( e.Button ) {
 				case MouseButtons.Left:
-					if ( 0<=SelectedAssetIndex && SelectedAssetIndex<Map.Assets.Count )
+					if ( SelectedAsset!=null )
 					using ( var fx = Graphics.FromImage(layer.Canvas) )
 					{
-						var asset = Map.Assets[SelectedAssetIndex];
+						var asset = SelectedAsset;
 						fx.DrawImage( asset, x*Map.SnapX, y*Map.SnapY, asset.Width, asset.Height );
 					}
 					break;
@@ -374,43 +314,13 @@ namespace MapEditor1 {
 
 			var side = ClientSize.Width;
 
-			if ( Map!=null && Map.Assets.Count>0 ) {
-				var assets_w = Map.Assets.Max( a => a.Width*AssetsZoom );
-				side -= assets_w+2;
-				var positions = GenerateAssetPositions().ToArray();
-
-				fx.FillRectangle( Brushes.Black, ClientSize.Width-assets_w-4, 0, assets_w+4, ClientSize.Height );
-				for ( int y=2, i=0 ; y<ClientSize.Height && i<Map.Assets.Count ; y+=Map.Assets[i].Height*AssetsZoom+2, ++i ) {
-					var target = positions[i];
-					fx.DrawImage( Map.Assets[i], target );
-					if ( i==SelectedAssetIndex ) {
-						fx.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Default;
-						fx.DrawRectangle( Pens.White, target );
-						fx.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-					}
-				}
-			}
-
-			var layerpos = GenerateLayerPositions(side).ToArray();
-			if ( layerpos.Length>0 ) {
-				var left  = layerpos[0].TypeIconPosition  .Left -2;
-				var right = layerpos[0].RenameIconPosition.Right+2;
-				fx.FillRectangle( Brushes.Black, left, 0, right-left, ClientSize.Height );
-			}
-			for ( int i=0 ; i<layerpos.Length ; ++i ) {
-				var layer = Map.Layers[i];
-				var pos   = layerpos[i];
-
-				var fg = (layer == SelectedLayer) ? Color.Black  : Color.White;
-				var bg = (layer == SelectedLayer) ? Color.Orange : Color.Black;
-
-				var typeicon = (layer is BitmapLayer ? BitmapLayerIcon : layer is BitLayer ? BitLayerIcon : null);
-				if ( layer==SelectedLayer ) using ( var brush = new SolidBrush(bg) ) fx.FillRectangle( brush, pos.LinePosition );
-				fx.DrawImage( typeicon, pos.TypeIconPosition );
-				TextRenderer.DrawText( fx, layer.Name, Font, pos.TextPosition, fg, bg );
-				fx.DrawImage( VisibleLayerIcon, pos.VisibilityIconPosition );
-				fx.DrawImage( TextLayerIcon   , pos.RenameIconPosition     );
-			}
+			var target = ClientRectangle;
+			target = AssetsSidebar.RefreshLayout( target );
+			target = LayersSidebar.RefreshLayout( target );
+			fx.FillRectangle( Brushes.Black, AssetsSidebar.BackgroundArea );
+			fx.FillRectangle( Brushes.Black, LayersSidebar.BackgroundArea );
+			AssetsSidebar.RenderTo(fx);
+			LayersSidebar.RenderTo(fx);
 
 			if ( DateTime.Now.Millisecond<500 && SelectedXY!=null ) {
 				var xy = SelectedXY.Value;
