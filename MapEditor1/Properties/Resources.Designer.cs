@@ -102,6 +102,20 @@ namespace MapEditor1.Properties {
             }
         }
         
+        internal static System.Drawing.Bitmap MoveLayerDown {
+            get {
+                object obj = ResourceManager.GetObject("MoveLayerDown", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap MoveLayerUp {
+            get {
+                object obj = ResourceManager.GetObject("MoveLayerUp", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         internal static System.Drawing.Bitmap NewBitLayerIcon {
             get {
                 object obj = ResourceManager.GetObject("NewBitLayerIcon", resourceCulture);

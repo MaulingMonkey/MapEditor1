@@ -408,9 +408,9 @@ namespace MapEditor1 {
 		Rectangle MapArea;
 
 		static readonly Bitmap
-			BitmapLayerIcon  = Resources.ImageLayerIcon,
-			BitLayerIcon     = Resources.BitLayerIcon,
+			BitmapLayerIcon  = Resources.ImageLayerIcon ,
+			BitLayerIcon     = Resources.BitLayerIcon   ,
 			VisibleLayerIcon = Resources.LayerVisibility,
-			TextLayerIcon    = Resources.LayerRename;
+			TextLayerIcon    = Resources.LayerRename    ;
 	}
 }

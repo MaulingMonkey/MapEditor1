@@ -8,8 +8,8 @@ using MapEditor1.Properties;
 
 namespace MapEditor1.UI {
 	class LayersSidebar {
-		public Func<IEnumerable<Layer>> GetLayers;
-		public Layer                    SelectedLayer;
+		public Func<IList<Layer>> GetLayers;
+		public Layer              SelectedLayer;
 
 		public Form Form;
 		public Font Font;
@@ -25,6 +25,8 @@ namespace MapEditor1.UI {
 			public Rectangle TextPosition;
 			public Rectangle VisibilityIconPosition;
 			public Rectangle RenameIconPosition;
+			public Rectangle MoveLayerUpPosition;
+			public Rectangle MoveLayerDownPosition;
 		}
 		public Rectangle BackgroundArea;
 		readonly List<LayoutEntry> Layout = new List<LayoutEntry>();
@@ -40,7 +42,7 @@ namespace MapEditor1.UI {
 
 			var textw = layers.Max( layer => TextRenderer.MeasureText( layer.Name, Font ).Width );
 			var right = target.Right-Margin;
-			var left  = right-16-2-textw-2-16-2-16;
+			var left  = right-16-2-textw-2-16-2-16-2-16-2-16;
 
 			BackgroundArea = new Rectangle
 				( left-Margin
@@ -59,7 +61,10 @@ namespace MapEditor1.UI {
 				entry.TypeIconPosition       = new Rectangle(x,y,   16,16); x += 16+2;
 				entry.TextPosition           = new Rectangle(x,y,textw,16); x += textw+2;
 				entry.VisibilityIconPosition = new Rectangle(x,y,   16,16); x += 16+2;
-				entry.RenameIconPosition     = new Rectangle(x,y,   16,16); x += 16;
+				entry.RenameIconPosition     = new Rectangle(x,y,   16,16); x += 16+2;
+				entry.MoveLayerUpPosition    = new Rectangle(x,y,   16,16); x += 16+2;
+				entry.MoveLayerDownPosition  = new Rectangle(x,y,   16,16); x += 16+2;
+				x-=2;
 				Debug.Assert( x==right );
 
 				entry.LinePosition = new Rectangle(left-2,y-1,right-left+4,18);
@@ -91,6 +96,8 @@ namespace MapEditor1.UI {
 
 				fx.DrawImage( layer.Visible ? VisibleLayerIcon : InvisibleLayerIcon , pos.VisibilityIconPosition );
 				fx.DrawImage( TextLayerIcon                                         , pos.RenameIconPosition     );
+				fx.DrawImage( MoveLayerUpIcon                                       , pos.MoveLayerUpPosition    );
+				fx.DrawImage( MoveLayerDownIcon                                     , pos.MoveLayerDownPosition  );
 			}
 		}
 
@@ -99,7 +106,9 @@ namespace MapEditor1.UI {
 			BitLayerIcon       = Resources.BitLayerIcon,
 			VisibleLayerIcon   = Resources.LayerVisibility,
 			InvisibleLayerIcon = Resources.LayerVisibilityOff,
-			TextLayerIcon      = Resources.LayerRename;
+			TextLayerIcon      = Resources.LayerRename,
+			MoveLayerUpIcon    = Resources.MoveLayerUp,
+			MoveLayerDownIcon  = Resources.MoveLayerDown;
 
 		public bool OnMouseDown( MouseEventArgs args ) {
 			if (!BackgroundArea.Contains(args.Location)) return false;
@@ -111,6 +120,22 @@ namespace MapEditor1.UI {
 				} else if ( entry.RenameIconPosition.Contains(args.Location) ) {
 					var rld = new RenameLayerDialog(entry.Layer);
 					rld.ShowDialog(Form);
+				} else if ( entry.MoveLayerUpPosition.Contains(args.Location) ) {
+					var layers = GetLayers();
+					var index = layers.IndexOf(entry.Layer);
+					if ( index==-1 || index<=0 ) break;
+					var a = layers[index-1];
+					var b = layers[index-0];
+					layers[index-1] = b;
+					layers[index-0] = a;
+				} else if ( entry.MoveLayerDownPosition.Contains(args.Location) ) {
+					var layers = GetLayers();
+					var index = layers.IndexOf(entry.Layer);
+					if ( index==-1 || index>=layers.Count-1 ) break;
+					var a = layers[index+1];
+					var b = layers[index+0];
+					layers[index+1] = b;
+					layers[index+0] = a;
 				} else {
 					SelectedLayer = entry.Layer;
 				}
