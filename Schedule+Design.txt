@@ -24,3 +24,8 @@ Jaunt 2 Schedule:
 :30 Save/Open polish (seperate 'save as', tracking last used directory)
 :30 Slack Time (more layer icons, reordering?)
 :1 LUNCH!
+
+Jaunt Fragment 3 Schedule:
+
+[ ] Fix map editor cursor rendering order to be behind layer list
+[ ] Add map editor asset list scrolling
