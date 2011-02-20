@@ -27,5 +27,5 @@ Jaunt 2 Schedule:
 
 Jaunt Fragment 3 Schedule:
 
-[ ] Fix map editor cursor rendering order to be behind layer list
-[ ] Add map editor asset list scrolling
+:10 [X] Fix map editor cursor rendering order to be behind layer list -- finished well ahead of time
+:30 [ ] Add map editor asset list scrolling

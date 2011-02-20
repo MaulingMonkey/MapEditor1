@@ -382,17 +382,6 @@ namespace MapEditor1 {
 				}
 			}
 
-			var side = ClientSize.Width;
-
-			var target = ClientRectangle;
-			target = AssetsSidebar.RefreshLayout( target );
-			target = LayersSidebar.RefreshLayout( target );
-			MapArea = target; // everything left over
-			fx.FillRectangle( Brushes.Black, AssetsSidebar.BackgroundArea );
-			fx.FillRectangle( Brushes.Black, LayersSidebar.BackgroundArea );
-			AssetsSidebar.RenderTo(fx);
-			LayersSidebar.RenderTo(fx);
-
 			if ( DateTime.Now.Millisecond<500 && SelectedXY!=null ) {
 				var xy = SelectedXY.Value;
 				var asset = SelectedAsset;
@@ -403,6 +392,17 @@ namespace MapEditor1 {
 					fx.FillRectangle( Brushes.Red, xy.X*Map.SnapX*MapZoom + MapOffsetTL.X, xy.Y*Map.SnapY*MapZoom + MapOffsetTL.Y, Map.SnapX*MapZoom, Map.SnapY*MapZoom );
 				}
 			}
+
+			var side = ClientSize.Width;
+
+			var target = ClientRectangle;
+			target = AssetsSidebar.RefreshLayout( target );
+			target = LayersSidebar.RefreshLayout( target );
+			MapArea = target; // everything left over
+			fx.FillRectangle( Brushes.Black, AssetsSidebar.BackgroundArea );
+			fx.FillRectangle( Brushes.Black, LayersSidebar.BackgroundArea );
+			AssetsSidebar.RenderTo(fx);
+			LayersSidebar.RenderTo(fx);
 		}
 
 		Rectangle MapArea;
