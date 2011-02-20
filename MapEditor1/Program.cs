@@ -40,7 +40,7 @@ namespace MapEditor1 {
 				var test = (State)xs.Deserialize(ms);
 
 				File.WriteAllBytes(StatePath,ms.ToArray());
-			} catch ( Exception e ) {
+			} catch ( Exception ) {
 			}
 		}
 	}
